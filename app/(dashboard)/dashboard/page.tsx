@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useEffect, useRef, useMemo, useCallback } from "react"
+import { subHours } from "date-fns"
 import useSWR from "swr"
 import { PageHeader } from "@/components/page-header"
 import { LogFilters } from "@/components/log-filters"
@@ -20,6 +21,8 @@ function buildSearchUrl(params: {
   service: string
   level: string
   host: string
+  from: Date | undefined
+  to: Date | undefined
 }) {
   const url = new URL("/api/v1/logs/search", window.location.origin)
   if (params.query) url.searchParams.set("query", params.query)
@@ -29,8 +32,33 @@ function buildSearchUrl(params: {
     url.searchParams.set("level", params.level)
   if (params.host && params.host !== "all")
     url.searchParams.set("host", params.host)
+  if (params.from) url.searchParams.set("from", params.from.toISOString())
+  if (params.to) url.searchParams.set("to", params.to.toISOString())
   url.searchParams.set("limit", "100")
   return url.toString()
+}
+
+function buildVolumeUrl(params: {
+  from: Date | undefined
+  to: Date | undefined
+}) {
+  const url = new URL("/api/v1/logs/volume", window.location.origin)
+  url.searchParams.set("bucket", "minute")
+  if (params.from) url.searchParams.set("from", params.from.toISOString())
+  if (params.to) url.searchParams.set("to", params.to.toISOString())
+  return url.toString()
+}
+
+/** Custom hook to debounce a value by `delay` ms. */
+function useDebounce<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay)
+    return () => clearTimeout(timer)
+  }, [value, delay])
+
+  return debounced
 }
 
 export default function DashboardPage() {
@@ -38,19 +66,45 @@ export default function DashboardPage() {
   const [service, setService] = useState("all")
   const [level, setLevel] = useState("all")
   const [host, setHost] = useState("all")
-  const [searchUrl, setSearchUrl] = useState("/api/v1/logs/search?limit=100")
+  const [from, setFrom] = useState<Date | undefined>(() => subHours(new Date(), 3))
+  const [to, setTo] = useState<Date | undefined>(() => new Date())
+
+  const debouncedQuery = useDebounce(query, 300)
+
+  // Build URLs reactively based on current filter state
+  const searchUrl = useMemo(
+    () =>
+      buildSearchUrl({
+        query: debouncedQuery,
+        service,
+        level,
+        host,
+        from,
+        to,
+      }),
+    [debouncedQuery, service, level, host, from, to]
+  )
+
+  const volumeUrl = useMemo(
+    () => buildVolumeUrl({ from, to }),
+    [from, to]
+  )
 
   const { data: logsData, isLoading: logsLoading } = useSWR(searchUrl, fetcher, {
     refreshInterval: 10000,
   })
-  const { data: volumeData } = useSWR("/api/v1/logs/volume?bucket=minute", fetcher, {
+  const { data: volumeData } = useSWR(volumeUrl, fetcher, {
     refreshInterval: 30000,
   })
   const { data: filtersData } = useSWR("/api/v1/logs/filters", fetcher)
 
-  const onSearch = useCallback(() => {
-    setSearchUrl(buildSearchUrl({ query, service, level, host }))
-  }, [query, service, level, host])
+  const handleRangeChange = useCallback(
+    (range: { from: Date | undefined; to: Date | undefined }) => {
+      setFrom(range.from)
+      setTo(range.to)
+    },
+    []
+  )
 
   const logs = logsData?.logs || []
   const volume = volumeData?.volume || []
@@ -131,7 +185,9 @@ export default function DashboardPage() {
           setLevel={setLevel}
           host={host}
           setHost={setHost}
-          onSearch={onSearch}
+          from={from}
+          to={to}
+          onRangeChange={handleRangeChange}
           services={services}
           hosts={hosts}
         />

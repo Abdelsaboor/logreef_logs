@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
+import { DateRangePicker } from "@/components/date-range-picker"
 import { LOG_LEVELS } from "@/lib/constants"
 
 interface LogFiltersProps {
@@ -21,7 +21,9 @@ interface LogFiltersProps {
   setLevel: (l: string) => void
   host: string
   setHost: (h: string) => void
-  onSearch: () => void
+  from: Date | undefined
+  to: Date | undefined
+  onRangeChange: (range: { from: Date | undefined; to: Date | undefined }) => void
   services: string[]
   hosts: string[]
 }
@@ -35,62 +37,68 @@ export function LogFilters({
   setLevel,
   host,
   setHost,
-  onSearch,
+  from,
+  to,
+  onRangeChange,
   services,
   hosts,
 }: LogFiltersProps) {
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <div className="relative flex-1 min-w-[240px]">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search logs..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && onSearch()}
-          className="pl-9"
-        />
+    <div className="flex flex-col gap-3">
+      {/* Row 1: search + dropdowns */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[240px]">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search logs..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select value={service} onValueChange={setService}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="All Services" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Services</SelectItem>
+            {services.map((s) => (
+              <SelectItem key={s} value={s}>
+                {s}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={level} onValueChange={setLevel}>
+          <SelectTrigger className="w-[130px]">
+            <SelectValue placeholder="All Levels" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Levels</SelectItem>
+            {LOG_LEVELS.map((l) => (
+              <SelectItem key={l} value={l}>
+                {l.toUpperCase()}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={host} onValueChange={setHost}>
+          <SelectTrigger className="w-[130px]">
+            <SelectValue placeholder="All Hosts" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Hosts</SelectItem>
+            {hosts.map((h) => (
+              <SelectItem key={h} value={h}>
+                {h}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
-      <Select value={service} onValueChange={setService}>
-        <SelectTrigger className="w-[160px]">
-          <SelectValue placeholder="All Services" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Services</SelectItem>
-          {services.map((s) => (
-            <SelectItem key={s} value={s}>
-              {s}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Select value={level} onValueChange={setLevel}>
-        <SelectTrigger className="w-[130px]">
-          <SelectValue placeholder="All Levels" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Levels</SelectItem>
-          {LOG_LEVELS.map((l) => (
-            <SelectItem key={l} value={l}>
-              {l.toUpperCase()}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Select value={host} onValueChange={setHost}>
-        <SelectTrigger className="w-[130px]">
-          <SelectValue placeholder="All Hosts" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Hosts</SelectItem>
-          {hosts.map((h) => (
-            <SelectItem key={h} value={h}>
-              {h}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Button onClick={onSearch}>Search</Button>
+
+      {/* Row 2: date range picker */}
+      <DateRangePicker from={from} to={to} onRangeChange={onRangeChange} />
     </div>
   )
 }
