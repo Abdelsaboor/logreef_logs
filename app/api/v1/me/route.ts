@@ -1,17 +1,12 @@
 import { NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
-import { DEMO_USER_ID } from "@/lib/constants"
+import { getCurrentUser } from "@/lib/session"
 
 export async function GET() {
-  const { data, error } = await supabase
-    .from("users")
-    .select("*")
-    .eq("id", DEMO_USER_ID)
-    .single()
+  const user = await getCurrentUser()
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  return NextResponse.json({ user: data })
+  return NextResponse.json({ user })
 }

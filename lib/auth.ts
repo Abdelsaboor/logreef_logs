@@ -28,9 +28,6 @@ export function getRedirectUri() {
   return process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI || "http://localhost:3000/api/auth/callback"
 }
 
-/** Helper to extract a demo user for preview mode (no WorkOS configured). */
-export const DEMO_USER_ID = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
-
 export function isAuthConfigured(): boolean {
   return !!(
     process.env.WORKOS_API_KEY &&

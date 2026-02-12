@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase"
+import { getSupabase } from "@/lib/supabase"
 import { getPlanForUser, type Plan } from "@/lib/plans"
 
 interface UsageData {
@@ -18,6 +18,8 @@ export async function getUserUsage(userId: string): Promise<UsageData> {
   // Fetch subscription, log count today, alert count, and api key count in parallel
   const todayStart = new Date()
   todayStart.setHours(0, 0, 0, 0)
+
+  const supabase = getSupabase()
 
   const [subResult, logsResult, alertsResult, keysResult] = await Promise.all([
     supabase

@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server"
-import { DEMO_USER_ID } from "@/lib/constants"
+import { getSessionUserId } from "@/lib/session"
 import { getUserUsage } from "@/lib/usage"
 
 export async function GET() {
+  const userId = await getSessionUserId()
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   try {
-    const { plan, usage } = await getUserUsage(DEMO_USER_ID)
+    const { plan, usage } = await getUserUsage(userId)
 
     return NextResponse.json({
       plan: plan.id,

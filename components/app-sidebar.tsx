@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import useSWR from "swr"
 import {
   Search,
   Bell,
@@ -34,6 +35,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
+const fetcher = (url: string) => fetch(url).then((r) => r.json())
+
 const navItems = [
   { title: "Log Explorer", href: "/dashboard", icon: Search },
   { title: "Alerts", href: "/alerts", icon: Bell },
@@ -43,6 +46,12 @@ const navItems = [
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const { data: meData } = useSWR("/api/v1/me", fetcher)
+  const { data: billingData } = useSWR("/api/v1/billing/status", fetcher)
+
+  const email = meData?.user?.email || ""
+  const planName = billingData?.plan_name || "Free"
+  const initials = email ? email.charAt(0).toUpperCase() : "U"
 
   return (
     <Sidebar variant="inset">
@@ -107,19 +116,21 @@ export function AppSidebar() {
                 <SidebarMenuButton className="w-full">
                   <Avatar className="h-6 w-6">
                     <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                      <User className="h-3 w-3" />
+                      {initials}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="truncate text-sm">demo@logreef.dev</span>
+                  <span className="truncate text-sm">
+                    {email || "Loading..."}
+                  </span>
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent side="top" align="start" className="w-56">
                 <div className="px-2 py-1.5">
                   <p className="text-sm font-medium text-foreground">
-                    demo@logreef.dev
+                    {email}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Free Plan
+                    {planName} Plan
                   </p>
                 </div>
                 <DropdownMenuSeparator />

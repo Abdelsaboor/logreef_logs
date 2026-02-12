@@ -9,7 +9,11 @@ import { LogVolumeChart } from "@/components/log-volume-chart"
 import { Card, CardContent } from "@/components/ui/card"
 import { Activity, AlertTriangle, Server, FileText } from "lucide-react"
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json())
+const fetcher = (url: string) =>
+  fetch(url).then((r) => {
+    if (!r.ok) throw new Error("Unauthorized")
+    return r.json()
+  })
 
 function buildSearchUrl(params: {
   query: string
@@ -42,6 +46,7 @@ export default function DashboardPage() {
   const { data: volumeData } = useSWR("/api/v1/logs/volume?bucket=minute", fetcher, {
     refreshInterval: 30000,
   })
+  const { data: filtersData } = useSWR("/api/v1/logs/filters", fetcher)
 
   const onSearch = useCallback(() => {
     setSearchUrl(buildSearchUrl({ query, service, level, host }))
@@ -49,6 +54,8 @@ export default function DashboardPage() {
 
   const logs = logsData?.logs || []
   const volume = volumeData?.volume || []
+  const services: string[] = filtersData?.services || []
+  const hosts: string[] = filtersData?.hosts || []
 
   const errorCount = logs.filter(
     (l: { level: string }) => l.level === "error"
@@ -125,6 +132,8 @@ export default function DashboardPage() {
           host={host}
           setHost={setHost}
           onSearch={onSearch}
+          services={services}
+          hosts={hosts}
         />
 
         {/* Log table */}

@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
-import { DEMO_USER_ID } from "@/lib/constants"
+import { getSupabase } from "@/lib/supabase"
+import { authenticateApiKey } from "@/lib/api-auth"
 import { getUserUsage } from "@/lib/usage"
 
 export async function POST(request: NextRequest) {
+  // Authenticate via API key
+  const userId = await authenticateApiKey(request)
+  if (!userId) {
+    return NextResponse.json(
+      { error: "Invalid or missing API key. Pass your key in the X-API-Key header." },
+      { status: 401 }
+    )
+  }
+
   const body = await request.json()
   const logs = body.logs
 
@@ -12,7 +21,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Enforce plan limits
-  const { plan, usage } = await getUserUsage(DEMO_USER_ID)
+  const { plan, usage } = await getUserUsage(userId)
 
   if (logs.length > plan.limits.max_batch_size) {
     return NextResponse.json(
@@ -40,7 +49,7 @@ export async function POST(request: NextRequest) {
   const acceptedLogs = logs.slice(0, remainingToday)
 
   const rows = acceptedLogs.map((log: Record<string, unknown>) => ({
-    user_id: DEMO_USER_ID,
+    user_id: userId,
     timestamp: log.timestamp || new Date().toISOString(),
     service: log.service || "default",
     host: log.host || "unknown",
@@ -49,6 +58,7 @@ export async function POST(request: NextRequest) {
     raw_json: log.raw_json || null,
   }))
 
+  const supabase = getSupabase()
   const { error } = await supabase.from("logs").insert(rows)
 
   if (error) {

@@ -1,21 +1,26 @@
 import { NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
-import { DEMO_USER_ID } from "@/lib/constants"
+import { getSupabase } from "@/lib/supabase"
+import { getSessionUserId } from "@/lib/session"
 import { getUserUsage } from "@/lib/usage"
 
 export async function GET() {
+  const userId = await getSessionUserId()
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const supabase = getSupabase()
   const { data, error } = await supabase
     .from("alerts")
     .select("*")
-    .eq("user_id", DEMO_USER_ID)
+    .eq("user_id", userId)
     .order("created_at", { ascending: false })
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Also return usage + limits for the UI
-  const { plan, usage } = await getUserUsage(DEMO_USER_ID)
+  const { plan, usage } = await getUserUsage(userId)
 
   return NextResponse.json({
     alerts: data || [],
@@ -27,10 +32,14 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const userId = await getSessionUserId()
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   const body = await request.json()
 
-  // Enforce alert count limit
-  const { plan, usage } = await getUserUsage(DEMO_USER_ID)
+  const { plan, usage } = await getUserUsage(userId)
   if (usage.alerts_count >= plan.limits.alerts) {
     return NextResponse.json(
       {
@@ -41,7 +50,6 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // Enforce webhook permission
   if (body.channel === "WEBHOOK" && !plan.permissions.webhook_alerts) {
     return NextResponse.json(
       {
@@ -52,10 +60,11 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  const supabase = getSupabase()
   const { data, error } = await supabase
     .from("alerts")
     .insert({
-      user_id: DEMO_USER_ID,
+      user_id: userId,
       name: body.name || "Untitled Alert",
       rule_type: body.rule_type,
       rule_value: body.rule_value,

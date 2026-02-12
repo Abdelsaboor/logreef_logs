@@ -1,20 +1,26 @@
 import { NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
-import { DEMO_USER_ID } from "@/lib/constants"
+import { getSupabase } from "@/lib/supabase"
+import { getSessionUserId } from "@/lib/session"
 import { getUserUsage } from "@/lib/usage"
 
 export async function GET() {
+  const userId = await getSessionUserId()
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const supabase = getSupabase()
   const { data, error } = await supabase
     .from("api_keys")
     .select("id, last4, label, created_at, revoked_at")
-    .eq("user_id", DEMO_USER_ID)
+    .eq("user_id", userId)
     .order("created_at", { ascending: false })
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  const { plan, usage } = await getUserUsage(DEMO_USER_ID)
+  const { plan, usage } = await getUserUsage(userId)
 
   return NextResponse.json({
     api_keys: data || [],
@@ -25,10 +31,14 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const userId = await getSessionUserId()
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   const body = await request.json()
 
-  // Enforce API key limit
-  const { plan, usage } = await getUserUsage(DEMO_USER_ID)
+  const { plan, usage } = await getUserUsage(userId)
   if (usage.api_keys_count >= plan.limits.api_keys) {
     return NextResponse.json(
       {
@@ -44,15 +54,16 @@ export async function POST(request: NextRequest) {
   const plaintext = `lr_${Buffer.from(keyBytes).toString("base64url")}`
   const last4 = plaintext.slice(-4)
 
-  // Hash the key (in production, use argon2/bcrypt in Go backend)
+  // Hash the key with SHA-256
   const encoder = new TextEncoder()
   const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(plaintext))
   const keyHash = Buffer.from(hashBuffer).toString("hex")
 
+  const supabase = getSupabase()
   const { data, error } = await supabase
     .from("api_keys")
     .insert({
-      user_id: DEMO_USER_ID,
+      user_id: userId,
       key_hash: keyHash,
       last4,
       label: body.label || "",

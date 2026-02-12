@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { LOG_LEVELS, SERVICES, HOSTS } from "@/lib/constants"
+import { LOG_LEVELS } from "@/lib/constants"
 
 interface LogFiltersProps {
   query: string
@@ -22,6 +22,8 @@ interface LogFiltersProps {
   host: string
   setHost: (h: string) => void
   onSearch: () => void
+  services: string[]
+  hosts: string[]
 }
 
 export function LogFilters({
@@ -34,6 +36,8 @@ export function LogFilters({
   host,
   setHost,
   onSearch,
+  services,
+  hosts,
 }: LogFiltersProps) {
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -53,7 +57,7 @@ export function LogFilters({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Services</SelectItem>
-          {SERVICES.map((s) => (
+          {services.map((s) => (
             <SelectItem key={s} value={s}>
               {s}
             </SelectItem>
@@ -79,7 +83,7 @@ export function LogFilters({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Hosts</SelectItem>
-          {HOSTS.map((h) => (
+          {hosts.map((h) => (
             <SelectItem key={h} value={h}>
               {h}
             </SelectItem>

@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
-import { DEMO_USER_ID } from "@/lib/constants"
+import { getSupabase } from "@/lib/supabase"
+import { getSessionUserId } from "@/lib/session"
 
 export async function GET(request: NextRequest) {
+  const userId = await getSessionUserId()
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   const params = request.nextUrl.searchParams
   const query = params.get("query") || ""
   const from = params.get("from")
@@ -13,10 +18,11 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(parseInt(params.get("limit") || "100"), 500)
   const cursor = parseInt(params.get("cursor") || "0")
 
+  const supabase = getSupabase()
   let q = supabase
     .from("logs")
     .select("*")
-    .eq("user_id", DEMO_USER_ID)
+    .eq("user_id", userId)
     .order("timestamp", { ascending: false })
     .limit(limit)
 
