@@ -3,6 +3,11 @@ name = "logreef-agent"
 version = "0.1.0"
 edition = "2021"
 description = "LogReef log-shipping agent: tails files and forwards to the LogReef ingest API"
+license = "MIT"
+
+[[bin]]
+name = "logreef-agent"
+path = "src/main.rs"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
@@ -10,7 +15,16 @@ reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-feature
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 clap = { version = "4", features = ["derive"] }
-notify = "6"
+notify = { version = "6", features = ["macos_fsevent"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1"
+hostname = "0.4"
+glob = "0.3"
+backoff = { version = "0.4", features = ["tokio"] }
+
+[profile.release]
+opt-level = "z"
+lto = true
+strip = true
