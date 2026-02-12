@@ -83,7 +83,8 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   polar_subscription_id TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'active',
   current_period_end TIMESTAMPTZ,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT uq_subscriptions_user_id UNIQUE (user_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
