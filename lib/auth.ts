@@ -1,4 +1,4 @@
-import { WorkOS } from "@workos-inc/authkit-nextjs"
+import { WorkOS } from "@workos-inc/node"
 
 /**
  * WorkOS AuthKit helpers.
